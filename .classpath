@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="external"/>
+	<classpathentry kind="src" path="resource"/>
+	<classpathentry kind="src" path="config"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="external/commons-exec-1.3/commons-exec-1.3.jar"/>
+	<classpathentry kind="lib" path="external/usb4java-1.2.0/usb4java-1.2.0.jar"/>
+	<classpathentry kind="lib" path="external/usb4java-1.2.0/commons-lang3-3.2.1.jar"/>
+	<classpathentry kind="lib" path="external/usb4java-javax-1.2.0/usb-api-1.0.2.jar"/>
+	<classpathentry kind="lib" path="external/usb4java-javax-1.2.0/usb4java-javax-1.2.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

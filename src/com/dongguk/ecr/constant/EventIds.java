@@ -1,0 +1,68 @@
+package com.dongguk.ecr.constant;
+
+/**
+ *
+ * @author jhun.ahn
+ *
+ */
+public enum EventIds {
+
+	/** COMMON Message */
+	UPDATE(0x001, "CONFIGURATION UPDATE"),
+
+	/** EventListenerIds.LOG_MSG_LISTENER(1) */
+	MSG_APPEND(0x100, "MSG_APPEND"),
+	MSG_CLEAR(0x101, "MSG_CLEAR"),
+	MSG_DUMP(0x102, "MSG_DUMP"),
+
+	/** EventListenerIds.FUSING_ITEM_LISTENER(2) */
+	FUSING_INIT_MAP(0x200, "FUSING_INIT_MAP"),
+	FUSING_ITEM_CLEAR(0x201, "FUSING_ITEM_CLEAR"),
+	FUSING_ITEM_ADDED(0x202, "FUSING_ITEM_ADDED"),
+	FUSING_PROCESS_START(0x203, "FUSING_PROCESS_START"),
+	FUSING_PROCESS_STOP(0x204, "FUSING_PROCESS_STOP"),
+	FUSING_PROCESS_TERMINATE(0x205, "FUSING_PROCESS_TERMINATE"),
+
+	/** EventListenerIds.JOB_QUEUE_LISTENER(3) */
+	STATUS_ITEM_CLEAR (0x300, "STATUS_ITEM_CLEAR"),
+	STATUS_ITEM_ADDED (0x301, "STATUS_ITEM_ADDED"),
+	STATUS_ITEM_DELETED (0x302, "STATUS_ITEM_DELETED"),
+	STATUS_ITEM_SUCCESS (0x303, "STATUS_ITEM_SUCCESS"),
+	STATUS_ITEM_FAILURE (0x304, "STATUS_ITEM_FAILURE"),
+
+	STATUS_DEVICE_CLEAR (0x305, "STATUS_DEVICE_CLEAR"),
+	STATUS_DEVICE_ADDED (0x306, "STATUS_DEVICE_ADDED"),
+	STATUS_DEVICE_DELETED (0x307, "STATUS_DEVICE_DELETED"),
+	STATUS_DEVICE_SELECT (0x308, "STATUS_DEVICE_SELECT"),
+
+	CONNCTION_CLEAR_DEVICE(0x401, "CONNCTION_CLEAR_DEVICE"),
+	CONNCTION_ADD_DEVICE(0x402, "CONNCTION_ADD_DEVICE"),
+	CONNCTION_DELETE_DEVICE(0x403, "CONNCTION_DELETE_SEARCH"),
+	CONNCTION_DEVICE_SEARCH(0x404, "CONNCTION_DEVICE_SEARCH"),
+
+	/** EventListenerIds.CONFIG(5) */
+	CONFIG_FILE_SELECTED(0x501, "CONFIG_FILE_SELECTED"),
+	CONFIG_PARTITION_SELECTED(0x502, "CONFIG_PARTITION_SELECTED");
+
+	public int code;
+	public String name;
+
+	private EventIds(int code, String name) {
+		this.code = code;
+		this.name = name;
+	}
+
+	public static EventIds get(int code) {
+		for(EventIds id : EventIds.values())
+			if(id.code == code)
+				return id;
+		return null;
+	}
+
+	public static EventIds get(String name) {
+		for(EventIds id : EventIds.values())
+			if(id.name.equals(name))
+				return id;
+		return null;
+	}
+}
