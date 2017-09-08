@@ -4,9 +4,32 @@ WD = $(abspath $(shell pwd))
 BUILDDIR=build
 
 define BUILD
-	$(Q) $(MAKE) -C $(BUILDDIR)/$(1) -j$(CORES)
+	$(Q) $(MAKE) -C $(BUILDDIR)/$(1) -j$(CORES) $(BUILDOPT)
 	$(Q) $(MAKE) -C $(BUILDDIR)/$(1) install
 endef
+
+CFLAGS += -O2 -pipe -W -Wall
+
+ifeq ($(ARCH),64)
+	CFLAGS += -mtune=generic
+else
+	CFLAGS += -m32 -march=i386
+	CXXFLAGS += -m32
+	LDFLAGS += -m32
+endif
+
+ifeq ($(ARCH),64)
+CTARGET = $(patsubst x86_64,i686,$(CHOST))
+else
+CTARGET = $(patsubst i686,x86_64,$(CHOST))
+endif
+
+CBUILD := $(shell gcc -dumpmachine)
+
+#
+# nothing to be done 'all'
+#
+all:
 
 download:
 	$(Q) if [ -e $(pkg) ]; then rm -rf $(pkg); fi
@@ -18,6 +41,10 @@ download:
 		rm -rf $(BUILDDIR)/$(_name:_init=); \
 	fi
 	$(Q) mkdir -p $(BUILDDIR)/$(_name:_init=)
+ifneq ($(wildcard $(WD)/../patches/$(_name:_init=)/*.patch),)
+	@echo "PATCH:   $(notdir $(wildcard $(WD)/../patches/$(_name:_init=)/*.patch))"
+	$(call CD,$(_name:_init=)) && patch -p1 < $(wildcard $(WD)/../patches/$(_name:_init=)/*.patch)
+endif
 ifneq ($(_initfile),)
 	$(call CD,$(_name:_init=)) && ./$(_initfile) || exit 1;
 endif
@@ -47,7 +74,7 @@ openocd_init:
 
 libusb: libusb_init
 	$(call CD,$(BUILDDIR)/$(@)) && \
-	$(WD)/$(@)/configure --enable-static \
+	$(WD)/$(@)/configure --enable-static --disable-shared \
 		--prefix=$(PREFIXDIR) \
 		--host=$(CHOST)  --target=$(CTARGET)  --build=$(CBUILD) \
 		CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" LDFLAGS="$(LDFLAGS)"
@@ -55,7 +82,7 @@ libusb: libusb_init
 
 libusb-compat-0.1: libusb-compat-0.1_init
 	$(call CD,$(BUILDDIR)/$(@)) && \
-	$(WD)/$(@)/configure --enable-static \
+	$(WD)/$(@)/configure --enable-static  --disable-shared \
 		--prefix=$(PREFIXDIR) \
 		--includedir=$(PREFIXDIR)/include/libusb0 \
 		--host=$(CHOST) --target=$(CTARGET) --build=$(CBUILD) \
@@ -68,8 +95,9 @@ libusb-compat-0.1: libusb-compat-0.1_init
 
 libconfuse: libconfuse_init
 	$(call CD,$(BUILDDIR)/$(@)) && \
-	$(WD)/$(@)/configure --enable-static --disable-examples \
-		--prefix=$(PREFIXDIR) --includedir=$(PREFIXDIR)/include/libconfuse
+	$(WD)/$(@)/configure --enable-static  --disable-shared \
+		--disable-examples \
+		--prefix=$(PREFIXDIR) --includedir=$(PREFIXDIR)/include/libconfuse \
 		--host=$(CHOST) --target=$(CTARGET) --build=$(CBUILD) \
 		CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" LDFLAGS="$(LDFLAGS)"
 	$(call BUILD,$(@))
@@ -79,28 +107,31 @@ libftdi: libftdi_init .libftdi_$(TOOL)
 	cmake $(option) -DCMAKE_INSTALL_PREFIX=$(PREFIXDIR) \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DPYTHON_BINDINGS=ON \
+		-DBUILD_SHARED_LIBS=OFF \
 		-DEXAMPLES=OFF -DBUILD_TESTS=OFF -DDOCUMENTATION=OFF \
 		-DLIBUSB_INCLUDE_DIR=$(PREFIXDIR)/include/libusb-1.0 \
-		-DLIBUSB_LIBRARIES=$(PREFIXDIR)/lib/libusb-1.0$(LIBEXT) \
+		-DLIBUSB_LIBRARIES=$(PREFIXDIR)/lib/libusb-1.0.a \
 		-DCONFUSE_INCLUDE_DIR=$(PREFIXDIR)/include/libconfuse \
-		-DCONFUSE_LIBRARY=$(PREFIXDIR)/lib/libconfuse$(LIBEXT) \
+		-DCONFUSE_LIBRARY=$(PREFIXDIR)/lib/libconfuse.a \
 		-DCMAKE_C_FLAGS="$(CFLAGS)" -DCMAKE_CXX_FLAGS="$(CXXFLAGS)" \
 		$(WD)/$(@)
 	$(call BUILD,$(@))
 
 .libftdi_win:
-	$(eval option := -G"MSYS Makefiles")
-	$(eval LIBEXT := .dll.a)
+	$(eval option += -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchain-$(CHOST).cmake)
+	$(eval option += -DCMAKE_EXE_LINKER_FLAGS="$(LDFLAGS)")
 
 .libftdi_linux:
-	$(eval LIBEXT := .so)
+	$(eval option := -DCMAKE_SYSTEM_NAME=Linux)
 
 .libftdi_macos:
-	$(eval LIBEXT := .dylib)
+	$(eval option := -DCMAKE_SYSTEM_NAME=Darwin)
+	$(eval option += -DCMAKE_EXE_LINKER_FLAGS="-lobjc -Wl,-framework,IOKit -Wl,-framework,CoreFoundation")
 
 hidapi: hidapi_init
 	$(call CD,$(BUILDDIR)/$(@)) && \
-	$(WD)/$(@)/configure --enable-static --disable-testgui \
+	$(WD)/$(@)/configure --enable-static --disable-shared \
+		--disable-testgui \
 		--prefix=$(PREFIXDIR) \
 		--host=$(CHOST) --target=$(CTARGET) --build=$(CBUILD) \
 		libusb_CFLAGS=-I$(PREFIXDIR)/include/libusb-1.0 \
@@ -109,11 +140,9 @@ hidapi: hidapi_init
 	$(call BUILD,$(@))
 
 openocd: openocd_init .openocd_$(TOOL)
-ifneq ($(wildcard $(WD)/../patches/*.patch),)
-	$(call CD,$(@:_init=)) && patch -p1 < $(wildcard $(WD)/../patches/*.patch)
-endif
 	$(call CD,$(BUILDDIR)/$(@)) && \
 	$(WD)/$(@)/configure $(option) \
+		--enable-static --disable-shared \
 		--prefix=$(PREFIXDIR) \
 		--host=$(CHOST) --target=$(CTARGET) --build=$(CBUILD) \
 		--enable-ftdi \
@@ -156,8 +185,8 @@ endif
 	$(call BUILD,$(@))
 
 .openocd_win:
-	$(eval option := --disable-werror --enable-static --enable-parport-giveio)
-	$(eval LDFLAGS += -L$$MSYSTEM_PREFIX/$$MINGW_CHOST/lib -static -static-libgcc -static-libstdc++)
+	$(eval option := --disable-werror --enable-parport-giveio)
+	$(eval LDFLAGS += -L$(dir $(shell readlink -f `which x86_64-w64-mingw32-gcc`))/../lib -static -static-libgcc -static-libstdc++)
 	$(eval LIBS := -lwinpthread)
 	$(eval HIDAPI_LIB := -lhidapi)
 
@@ -173,5 +202,3 @@ endif
 
 clean:
 	$(call DELFILE, $(filter-out Makefile, $(wildcard *)))
-#	$(call DELFILE, $(filter-out Makefile, $(wildcard *)))
-	

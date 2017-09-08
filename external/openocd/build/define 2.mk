@@ -10,7 +10,6 @@ export Q :=
 else
 ifeq ($(V),2)
 export Q :=
-BUILDOPT := "VERBOSE=1"
 else
 export Q := @
 endif
@@ -26,10 +25,5 @@ define DELFILE
 	$(Q) rm -rf $(1)
 endef
 
-define INSTALL
-	$(eval _target := $(1))
-	@echo INSTALL: $(notdir $(_target))
-	$(Q) cp -f $(_target) $(2)
-endef
-
+CFLAGS += -O2 -pipe
 CORES := $(shell getconf _NPROCESSORS_ONLN)
